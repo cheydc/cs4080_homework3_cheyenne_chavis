@@ -27,17 +27,32 @@ class Parser {
     return comma();
   }
 
-  // comma → equality ( "," equality )* ;
+  // comma → conditional ( "," conditional )* ;
   // Lowest precedence, left-associative.
   private Expr comma() {
-    Expr expr = equality();
+    Expr expr = conditional();
 
     while (match(COMMA)) {
       Token operator = previous();
-      Expr right = equality();
+      Expr right = conditional();
       // Reuse Binary; operator is COMMA.
       // In the interpreter, evaluate left then return right.
       expr = new Expr.Binary(expr, operator, right);
+    }
+
+    return expr;
+  }
+
+  // conditional → equality ( "?" expression ":" conditional )? ;
+  // Right-associative.
+  private Expr conditional() {
+    Expr expr = equality();
+
+    if (match(QUESTION)) {
+      Expr thenBranch = expression(); // allow full expression between ? and :
+      consume(COLON, "Expect ':' after then branch of conditional expression.");
+      Expr elseBranch = conditional(); // right-associative
+      expr = new Expr.Conditional(expr, thenBranch, elseBranch);
     }
 
     return expr;
